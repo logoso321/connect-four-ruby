@@ -60,7 +60,7 @@ class Game
 			location = queue.shift
 			if(@@board[location] == "|#{choice}|")
 				@@board[location] = "|#{piece}|"
-				return true
+				return location
 			else next
 			end
 		end
@@ -79,8 +79,92 @@ class Game
 		return list
 	end
 
-	def Game.check_win(player)
-		
+	def Game.check_win(player, location)
+		win = false
+		if(location == nil)
+			return false
+		end
+		neighbors = []
+		#Get all neighbors of location with the direction from the piece
+		@@board.each do |loc, val|
+			if((loc[0] - location[0]) == -1)
+				if((loc[1] - location[1]) == -1)
+					neighbors << [loc, "NW"]
+				elsif((loc[1] - location[1]) == 0)
+					neighbors << [loc, "W"]
+				elsif((loc[1] - location[1]) == 1)
+					neighbors << [loc, "SW"]
+				end
+			elsif((loc[0] - location[0]) == 0)
+				if((loc[1] - location[1]) == -1)
+					neighbors << [loc, "N"]
+				elsif((loc[1] - location[1]) == 1)
+					neighbors << [loc, "S"]
+				end		
+			elsif((loc[0] - location[0]) == 1)
+				if((loc[1] - location[1]) == -1)
+					neighbors << [loc, "NE"]
+				elsif((loc[1] - location[1]) == 0)
+					neighbors << [loc, "E"]
+				elsif((loc[1] - location[1]) == 1)
+					neighbors << [loc, "SE"]
+				end		
+			end
+		end
+		#selects only the neighboring locations that have the same tag ("x" or "o") as player
+		neighbors.select! {|loc, dir| @@board[loc] == player}
+
+		neighbors.each do |loc, direction|
+			win = Game.path(loc,direction,player)
+			if(win == true)
+				return true
+			end
+		end
+
+		#returns false if previous loop doesnt return true (no winning combination)
+		return false
+	end
+
+	def Game.path(location, direction, player)
+		list = []
+
+		case direction
+		when "N"
+			list = Game.next_two(location, 0, -1)
+		when "NE"
+			list = Game.next_two(location, 1, -1)
+		when "NW"
+			list = Game.next_two(location, -1, -1)
+		when "E"
+			list = Game.next_two(location, 1, 0)
+		when "W"
+			list = Game.next_two(location, -1, 0)
+		when "S"
+			list = Game.next_two(location, 0, 1)
+		when "SE"
+			list = Game.next_two(location, 1, 1)
+		when "SW"
+			list = Game.next_two(location, -1, 1)
+		end
+
+		counter = 0
+		list.each do |x|
+			if(@@board[x] == player)
+				counter += 1
+			end
+		end
+
+		if(counter == 2)
+			return true
+		else return false
+		end
+	end
+
+	def Game.next_two(location, xdif, ydif)
+		list = []
+		list << [location[0] + xdif, location[1] + ydif]
+		list << [location[0] + (2*xdif), location[1] + (2*ydif)]
+		return list
 	end
 
 	def Game.check_tie
@@ -95,25 +179,33 @@ class Game
 	end
 
 	def play
-		p1 = 0
-		p2 = 0
+		#Player 1 last location
+		#Player 2 last location
 		winner = ""
+		p1 = nil
+		p2 = nil
 
-		#If player 1 wins, check_win = 1, if player 2 wins, check_win = 2.
-		until Game.check_win == 1 || Game.check_win == 2 || Game.check_tie do
+		until Game.check_win("|o|", p1) || Game.check_win("|x|", p2) || Game.check_tie do
 			show_board(@@board, 7)
 						
 			p1 = Game.input("Player 1", "o")
-			Game.check_win("|o|")
-			Game.check_tie
+			if(Game.check_win("|o|", p1) || Game.check_tie)
+				break
+			end	
 			p2 = Game.input("Player 2", "x")
-			Game.check_win("|x|")		
-			Game.check_tie
+			if(Game.check_win("|x|", p2) || Game.check_tie)
+				break
+			end	
 		end
 
-		if(Game.check_tie)
+		if(Game.check_win("|o|", p1))
+			print("\nPlayer 1 has won the game!\n")
+		elsif(Game.check_win("|x|", p2))
+			print("\nPlayer 2 has won the game!\n")
+		elsif(Game.check_tie)
 			print("\nGame resulted in a tie")
 		end
+		show_board(@@board, 7)
 	end
 end
 
